@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   db:
-    image: mysql:8.0  # 更新到最新的稳定版本
+    image: ibex/debian-mysql-server-5.7  # 更新到最新的稳定版本
     environment:
       MYSQL_ROOT_PASSWORD: admin123
       MYSQL_DATABASE: taskman      # 修改为项目实际数据库名
@@ -12,12 +12,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password  # 添加兼容性配置
-    healthcheck:  # 添加健康检查
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # command: --default-authentication-plugin=mysql_native_password  # 添加兼容性配置
 
 volumes:
   mysql_data:
