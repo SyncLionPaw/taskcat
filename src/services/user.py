@@ -43,7 +43,7 @@ class UserService:
                 detail="Email already registered",
             )
 
-        # Create new user without is_active and is_superuser fields
+        # Create new user
         db_user = User(
             email=user_in.email,
             username=user_in.username,
@@ -90,58 +90,4 @@ class UserService:
             return None
         if not verify_password(password, user.hashed_password):
             return None
-        return user
-
-    @staticmethod
-    def get_current_user(
-        db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
-    ) -> User:
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-        
-        try:
-            # Simple token validation without jose
-            # Format: base64(header).base64(payload).signature
-            parts = token.split('.')
-            if len(parts) != 3:
-                raise credentials_exception
-            
-            # Decode payload
-            try:
-                payload_bytes = base64.urlsafe_b64decode(parts[1] + '=' * (4 - len(parts[1]) % 4))
-                payload = json.loads(payload_bytes.decode('utf-8'))
-            except Exception:
-                raise credentials_exception
-            
-            # Check if token has expired
-            if 'exp' in payload and payload['exp'] < time.time():
-                raise credentials_exception
-                
-            # Verify signature
-            message = f"{parts[0]}.{parts[1]}"
-            signature = hmac.new(
-                SECRET_KEY.encode(), 
-                message.encode(), 
-                hashlib.sha256
-            ).digest()
-            expected_signature = base64.urlsafe_b64encode(signature).decode('utf-8').rstrip('=')
-            
-            if not hmac.compare_digest(parts[2], expected_signature):
-                raise credentials_exception
-                
-            # Get username from payload
-            username = payload.get("sub")
-            if username is None:
-                raise credentials_exception
-                
-            token_data = TokenPayload(sub=username)
-        except Exception:
-            raise credentials_exception
-
-        user = UserService.get_user_by_username(db, username=token_data.sub)
-        if user is None:
-            raise credentials_exception
         return user

@@ -1,43 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from datetime import timedelta
+from typing import Dict
 
 from src.core.database import get_db
-from src.core.security import create_access_token, verify_password
-from src.schemas.token import Token
-from src.schemas.user import UserResponse
-from src.services.user import UserService
+from src.core.security import create_access_token
+from src.core.auth import authenticate_user, get_current_user
+from src.models.user import User
 
+# Create router without prefix - will be added in main.py
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+# Increase token expiration time for better user experience
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-
-@router.post("/login", response_model=Token)
+@router.post("/login")
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+    credentials: Dict[str, str] = Body(...),
+    db: Session = Depends(get_db)
 ):
     """
-    OAuth2 compatible token login, get an access token for future requests
+    Simple login endpoint that accepts JSON credentials and returns user and token
+    to match frontend expectations
     """
-    user = UserService.authenticate_user(
-        db, username=form_data.username, password=form_data.password
-    )
+    username = credentials.get("username")
+    password = credentials.get("password")
+    
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username and password are required",
+        )
+    
+    user = authenticate_user(db, username=username, password=password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
-
+    
+    # Format user data to match frontend expectations, handle missing fields
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_active": getattr(user, "is_active", True),  # Default to True if field doesn't exist
+        "is_superuser": getattr(user, "is_superuser", False)  # Default to False if field doesn't exist
+    }
+    
+    # Return format: { user: {...}, token: "..." }
+    return {
+        "user": user_data,
+        "token": access_token
+    }
 
 @router.post("/logout")
 def logout():
@@ -46,10 +66,16 @@ def logout():
     """
     return {"message": "Successfully logged out"}
 
-
-@router.get("/me", response_model=UserResponse)
-def read_current_user(current_user: UserResponse = Depends(UserService.get_current_user)):
+@router.get("/me")
+async def read_current_user(current_user: User = Depends(get_current_user)):
     """
-    Get current user
+    Get current user endpoint
     """
-    return current_user
+    # Return user data without wrapping to match frontend expectations
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "is_active": getattr(current_user, "is_active", True),  # Default to True if field doesn't exist
+        "is_superuser": getattr(current_user, "is_superuser", False)  # Default to False if field doesn't exist
+    }
