@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, Dict, Any
 
 from src.core.database import get_db
 from src.schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from src.services.task import TaskService
+from src.models.task import Task
 
 router = APIRouter()
 
@@ -23,15 +24,20 @@ def create_task(
 
 
 @router.get("/", response_model=List[TaskResponse])
-def read_tasks(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+def get_tasks(
     db: Session = Depends(get_db),
+    params: Optional[Dict[str, Any]] = None
 ):
-    """
-    获取任务列表，支持分页
-    """
-    return TaskService.get_tasks(db, skip=skip, limit=limit)
+    """Get all tasks with optional filtering"""
+    query = db.query(Task)
+    
+    # Add filtering logic if needed
+    if params:
+        # Add implementation for filtering by parameters
+        pass
+    
+    tasks = query.all()
+    return tasks
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
@@ -48,16 +54,24 @@ def read_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
-def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
-    """
-    更新任务信息
-    """
-    updated_task = TaskService.update_task(db, task_id=task_id, task=task)
-    if updated_task is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
-        )
-    return updated_task
+def update_task(
+    task_id: int,
+    task_update: TaskUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update a specific task"""
+    db_task = db.query(Task).filter(Task.id == task_id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Update task fields
+    update_data = task_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_task, key, value)
+    
+    db.commit()
+    db.refresh(db_task)
+    return db_task
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

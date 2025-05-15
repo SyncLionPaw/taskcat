@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1 import users, auth
+from src.api.v1 import users, auth, tasks
 from src.core.database import create_all_tables, migrate_database
 from src.models import User, Task  # Import models to register them
 
@@ -23,6 +23,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 
 @app.on_event("startup")
 def startup_event():
