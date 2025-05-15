@@ -9,7 +9,6 @@ class TaskBase(BaseModel):
     progress: Optional[float] = 0.0  # Add progress field with default value
 
 class TaskCreate(TaskBase):
-    creator_id: Optional[int] = None
     assignee_id: Optional[int] = None
 
 class TaskUpdate(BaseModel):

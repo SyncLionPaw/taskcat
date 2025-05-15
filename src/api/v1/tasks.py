@@ -6,6 +6,9 @@ from src.core.database import get_db
 from src.schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from src.services.task import TaskService
 from src.models.task import Task
+from src.models.user import User
+from src.core.auth import get_current_user
+
 
 router = APIRouter()
 
@@ -14,13 +17,12 @@ router = APIRouter()
 def create_task(
     task: TaskCreate,
     db: Session = Depends(get_db),
-    # TODO: 后续添加认证后，从token中获取用户ID
-    current_user_id: int = 1,
+    current_user: User = Depends(get_current_user),
 ):
     """
     创建新任务
     """
-    return TaskService.create_task(db=db, task=task, creator_id=current_user_id)
+    return TaskService.create_task(db=db, task=task, creator_id=current_user.id)
 
 
 @router.get("/", response_model=List[TaskResponse])
