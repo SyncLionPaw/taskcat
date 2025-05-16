@@ -28,17 +28,27 @@ def create_task(
 @router.get("/", response_model=List[TaskResponse])
 def get_tasks(
     db: Session = Depends(get_db),
-    params: Optional[Dict[str, Any]] = None
+    status: Optional[str] = Query(None),
+    assignee_id: Optional[int] = Query(None),
+    creator_id: Optional[int] = Query(None),
+    current_user: User = Depends(get_current_user),
 ):
     """Get all tasks with optional filtering"""
-    query = db.query(Task)
+    # Create a params dictionary with the actual query parameters
+    params = {
+        "status": status,
+        "assignee_id": assignee_id,
+        "creator_id": creator_id
+    }
     
-    # Add filtering logic if needed
-    if params:
-        # Add implementation for filtering by parameters
-        pass
+    # Filter out None values
+    params = {k: v for k, v in params.items() if v is not None}
     
-    tasks = query.all()
+    # Use the task service with the filtered parameters
+    tasks = TaskService.get_tasks(db, params=params)
+
+    print(tasks)
+    
     return tasks
 
 
@@ -62,18 +72,11 @@ def update_task(
     db: Session = Depends(get_db)
 ):
     """Update a specific task"""
-    db_task = db.query(Task).filter(Task.id == task_id).first()
-    if not db_task:
+    updated_task = TaskService.update_task(db, task_id, task_update)
+    if not updated_task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    # Update task fields
-    update_data = task_update.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_task, key, value)
-    
-    db.commit()
-    db.refresh(db_task)
-    return db_task
+    return updated_task
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)

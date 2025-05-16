@@ -1,14 +1,29 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from ..models.task import Task
 from ..schemas.task import TaskCreate, TaskUpdate
 
 class TaskService:
     @staticmethod
-    def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
-        return db.query(Task).offset(skip).limit(limit).all()
+    def get_tasks(db: Session, params: Dict[str, Any] = None) -> List[Task]:
+        """
+        Get all tasks with optional filtering
+        """
+        query = db.query(Task)
+        
+        # Apply filters if params are provided
+        if params:
+            if "status" in params:
+                query = query.filter(Task.status == params["status"])
+            if "assignee_id" in params:
+                query = query.filter(Task.assignee_id == params["assignee_id"])
+            if "creator_id" in params:
+                query = query.filter(Task.creator_id == params["creator_id"])
+        
+        # Make sure to return all columns from the Task model
+        return query.all()
 
     @staticmethod
     def get_task(db: Session, task_id: int) -> Optional[Task]:
@@ -17,8 +32,13 @@ class TaskService:
     @staticmethod
     def create_task(db: Session, task: TaskCreate, creator_id: int) -> Task:
         db_task = Task(
-            **task.model_dump(),
-            creator_id=creator_id
+            title=task.title,
+            description=task.description,
+            status=task.status or "pending",
+            progress=task.progress or 0,
+            creator_id=creator_id,
+            difficulty=task.difficulty,  # Include difficulty
+            points=task.points  # Include points
         )
         db.add(db_task)
         db.commit()
