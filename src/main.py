@@ -2,8 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.v1 import users, auth, tasks
-from src.core.database import create_all_tables, migrate_database
-from src.models import User, Task  # Import models to register them
+from src.models.user import User
+from src.models.material import Material
+from src.models.task import Task  # Import models to register them
 
 app = FastAPI(
     title="Score Management System",
@@ -24,12 +25,6 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
-
-@app.on_event("startup")
-def startup_event():
-    """Create database tables and run migrations on startup"""
-    create_all_tables()  # Create tables if they don't exist
-    migrate_database()   # Add missing columns if needed
 
 @app.get("/")
 def read_root():

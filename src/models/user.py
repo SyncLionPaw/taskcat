@@ -23,3 +23,4 @@ class User(Base):
     tasks_created = relationship("Task", back_populates="creator", foreign_keys="[Task.creator_id]", lazy="dynamic")
     created_tasks = relationship("Task", foreign_keys="Task.creator_id", back_populates="creator")
     assigned_tasks = relationship("Task", foreign_keys="Task.assignee_id", back_populates="assignee")
+    materials = relationship("Material", back_populates="uploader", lazy="dynamic")

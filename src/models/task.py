@@ -19,17 +19,26 @@ class Task(Base):
     assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, server_default=func.now(), nullable=True)
-    updated_at = Column(DateTime, onupdate=func.now(), nullable=True)
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # New fields to be added in migration
     difficulty = Column(Integer, default=1, nullable=True)  # 1-5 scale for task difficulty
     points = Column(Integer, default=0, nullable=True)  # Points/score value for the task
 
-    # Make sure these relationship definitions match the ones in User model
+    publish_type = Column(Integer,  default=1, nullable=False)
+    deadline = Column(DateTime, nullable=True)
+
+    material_id = Column(Integer, ForeignKey("materials.id"), nullable=True)  # 改为允许为空
+
+    # 关系定义
     creator = relationship(
         "User", foreign_keys=[creator_id], back_populates="created_tasks"
     )
     assignee = relationship(
         "User", foreign_keys=[assignee_id], back_populates="assigned_tasks"
     )
+    material = relationship("Material", back_populates="tasks")  # 添加与Material的关系
+
+    def __repr__(self):
+        return f"<Task(id={self.id}, title={self.title})>"

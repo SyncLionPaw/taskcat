@@ -1,10 +1,14 @@
-from sqlalchemy import create_engine, text, inspect
+from sqlalchemy import create_engine, text, inspect, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import Engine
+from datetime import datetime
 from src.core.config import settings
 
+SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
+
 engine = create_engine(
-    settings.DATABASE_URL,
+    SQLALCHEMY_DATABASE_URL,
     pool_pre_ping=True,
     echo=True  # 开发环境打印SQL语句
 )
