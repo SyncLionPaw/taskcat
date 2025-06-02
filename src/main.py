@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.v1 import users, auth, tasks
+from src.api.v1 import users, auth, tasks, sqlpractice
 from src.models.user import User
 from src.models.material import Material
 from src.models.task import Task  # Import models to register them
@@ -25,6 +25,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
+app.include_router(sqlpractice.router, prefix="/api/v1/sql-practice", tags=["sql-practice"])
 
 
 @app.get("/")
